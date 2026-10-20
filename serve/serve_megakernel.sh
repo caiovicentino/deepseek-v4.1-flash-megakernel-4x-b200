@@ -11,12 +11,13 @@
 #   API_KEY=... [ADMIN_API_KEY=...] MODEL_PATH=/models/dsv41-1017 \
 #   [IMG=/path/to/extracted/image] [SGLANG_OVERLAY=/overlay/site:/patched/sglang/python] bash serve/serve_megakernel.sh
 #   DRY=1 bash serve/serve_megakernel.sh   prints the arguments (for tools/check_launch.py)
+# Memory 0.84, not the base recipe's 0.80: TP4 MoE weights take ~25 GB/GPU more, and at 0.80 the KV pool is 1.85 M tokens.
 # Set ADMIN_API_KEY: without it, SGLang lets the ordinary key call admin routes (sgl-project/sglang#43706).
 set -euo pipefail
 MODEL_PATH="${MODEL_PATH:-/models/dsv41-1017}"
 ARGS=(
   --model-path "$MODEL_PATH" --served-model-name "${SERVED_MODEL_NAME:-deepseek-v4.1-flash}" --trust-remote-code
-  --tp-size 4 --ep-size 1 --mem-fraction-static "${MEMF:-0.80}"
+  --tp-size 4 --ep-size 1 --mem-fraction-static "${MEMF:-0.84}"
   --chunked-prefill-size 4096 --prefill-decode-interval "${PDI:-16}" --swa-prefix-tails 4096
   --max-running-requests 64 --cuda-graph-max-bs-decode 64
   --speculative-algorithm DSPARK --speculative-dspark-block-size 5

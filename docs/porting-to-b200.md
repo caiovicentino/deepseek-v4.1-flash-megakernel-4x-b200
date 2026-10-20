@@ -62,8 +62,23 @@ From `cuobjdump -res-usage` on the `sm_100a` cubins:
 | GSM8K, first 500 | **491/500 = 0.982** |
 | 16 functional checks + reasoning-leak check | 16/16, PASS |
 
-**Not yet run:** the plugin's `test/kernels` suite (bitwise checks against SGLang's kernels, fail-stop) and the rest of `test/e2e`. They need the GPUs free, and we chose not to take production down for longer. They are next, and the results will be added here.
+**Plugin kernel tests on our B200** (2026-10-20, during a maintenance window, `test/kernels`):
+
+| Suite | Result |
+|---|---|
+| single-GPU (moe, attn_gemm, step_inputs, draft) | 592 passed, 66 skipped, **2 failed** |
+| 4-GPU hops (wo_b publish into the Lamport all-reduce; two-shot hops), bitwise against SGLang | 2/2 passed |
+| 4-GPU hop B (MoE finalize into the all-reduce + mHC) | 7/7 passed |
+| 4-GPU fail-stop (a missing rank faults its peers within the deadline) | 5/5 passed |
+
+Neither failure is a numerical mismatch:
+- **`test_pinned_tactics_are_offered`** requires pinned GEMM tactics for the running SM. There are none for SM100: that is the untuned-tactics limitation below.
+- **`test_wq_b_output_ignores_unwritten_bytes[45-pool-eager]`** failed its own precondition ("poison did not land in the unwritten scale bytes"), so it did not get to compare outputs. The other parametrizations of the same test passed.
+
+The hops suite first failed with an import error. The cause: in our setup the SGLang image is extracted onto the host, and its `torchrun` script has a shebang that points to a different Python. With `python -m torch.distributed.run` it passed.
 
 ## 7. Not tuned yet
-- **GEMM tactics.** `mxfp8_ll` pins its low-latency GEMM tactics for `(103, N, K)` only. On the B200 it takes FlashInfer's first tactic. Timing the offered tactics per (N, K, row bucket) on the B200 and pinning the best is the obvious next step.
-- **Boot time.** The first boot took 18 minutes. We have not yet measured how much warm boots save.
+- **GEMM tactics.** `mxfp8_ll` pins its low-latency GEMM tactics for `(103, N, K)` only, so on the B200 the direct launches take FlashInfer's first tactic.
+  - Our first timing attempt called the kernel in a Python loop and measured ~45 µs per call for every shape. That is launch overhead: the GPU work is ~2 µs. We discarded the result.
+  - A valid tuner must time launches captured in a CUDA graph.
+- **Boot time.** The first boot took 18 minutes and a warm boot 6 min 16 s. The rest is mostly Engram table pre-faulting and graph capture.

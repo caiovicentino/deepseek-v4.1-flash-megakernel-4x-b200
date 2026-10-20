@@ -21,6 +21,16 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 >   - With 1 request running: **731 vs 538 tok/s** per user (+36%); 1,018 vs 633 (+61%) in decode stretches with no prefill mixed in.
 >   - With 2–8 running: 398 vs 321 (+24%), and 657 vs 456 (+44%) in clean stretches.
 >   - With 9–16 running: only 36 samples so far, so nothing to read yet.
+> - **Update 2026-10-20 03:03 UTC: memory, kernel tests and boot time.**
+>   - **Memory:** the megakernel needs MoE in TP4 (`--ep-size 1`), and that costs ~25 GB more weights per GPU. With
+>     the SWA window fixed at ~37 GB, the main KV pool fell from 20 M to **1.85 M tokens** at `--mem-fraction-static
+>     0.80`. We moved to **0.84**: pool **6.39 M tokens**, ~12 GB/GPU still free after boot.
+>   - **Kernel tests on the B200:** the plugin's own suite now ran on our GPUs (`test/kernels`). It passed:
+>     - 592 single-GPU tests (2 failures, both explained in [`docs/porting-to-b200.md`](docs/porting-to-b200.md) §6);
+>     - the 4-GPU hops (2/2), hop B (7/7) and fail-stop (5/5).
+>   - **Gates again:** KL 0.0045, GSM8K 0.974, 16/16, leak PASS. Speed unchanged (803 / 480 / 1,141 tok/s).
+>   - **Boot time:** a warm boot takes **6 min 16 s**. The first boot took 18 min because the plugin's cache directory
+>     started empty.
 > - **24-hour measurement running** (2026-10-20 01:41 → 2026-10-21 01:41 UTC). It uses the same tool and definitions as the base repo and compares against the 24 h before the swap. Results land in [`docs/results.md`](docs/results.md) around 2026-10-21 02:00 UTC.
 
 Series:
@@ -65,7 +75,11 @@ LOG=server.log URL=http://127.0.0.1:8000 API_KEY=... ADMIN_API_KEY=... MODEL_PAT
   LONGBENCH_CACHE=/tmp/longbench PY=python3 GSM8K=test.jsonl bash tools/gates.sh
 ```
 
-**Boot time.** The first boot took **18 minutes**: weights, Engram host tables, the plugin compiling its kernels, and CUDA-graph capture of the covered widths. The plugin's own build was quick: "built in 8.0 s, 2844 MiB" for the target and 1.2 s for the draft. The base recipe needed 3.3–4.4 min on warm boots; how much later megakernel boots save is the next thing we measure.
+**Boot time.** The first boot took **18 minutes**, almost all of it filling an empty cache directory:
+- 4 min of JIT for the mHC prewarm;
+- ~6 min of FlashInfer autotuning.
+
+With the cache warm, a boot takes **6 min 16 s**: weights, Engram host tables (~2 min), the plugin's build (8 s for the target, 1.2 s for the draft) and CUDA-graph capture of 27 batch sizes (~3 min). Keep `SGLANG_CACHE_DIR` stable between boots.
 
 ## Recipe card
 
@@ -76,7 +90,8 @@ LOG=server.log URL=http://127.0.0.1:8000 API_KEY=... ADMIN_API_KEY=... MODEL_PAT
 | framework | SGLang PR [#44945](https://github.com/sgl-project/sglang/pull/44945) (head `5ba9bb2dc2`), its python/ part and unit tests. It applies cleanly on `ed8c3139`; [`patches/sglang-pr44945-applied.diff`](patches/sglang-pr44945-applied.diff) |
 | plugin | [`sgl-nvidia-mega`](https://github.com/sgl-project/sgl-nvidia-mega) `d47deb3` plus our 2-commit B200 port ([`patches/sgl-nvidia-mega/`](patches/sgl-nvidia-mega/)) |
 | changes vs. the base recipe | `--ep-size 1` (MoE in TP4; the plugin needs every expert local), `--dsv4-attn-backend flashmla` (the base auto-resolves `flashmla_mega`), `--kv-cache-dtype fp8_e4m3`, `SGLANG_SPEC_TP_SYNC=rng,-dspark-accept-sample`, `--enable-nvidia-megakernel` |
-| unchanged | TP4, Engram host table per rank, mem 0.80, chunk 4096, 16 decode rounds between prefill chunks, max 64 running, DSpark block 5, thinking on at effort high, 1M context |
+| memory | `--mem-fraction-static 0.84` (the base recipe uses 0.80): TP4 MoE weights take ~100 GB per GPU instead of 74.5, and at 0.80 the main KV pool would be 1.85 M tokens; at 0.84 it is 6.39 M |
+| unchanged | TP4, Engram host table per rank, chunk 4096, 16 decode rounds between prefill chunks, max 64 running, DSpark block 5, thinking on at effort high, 1M context |
 | covered steps | DSpark target-verify steps of 1–384 rows: up to 64 requests at 6 rows each. Prefill, extend and anything else runs SGLang's normal path |
 
 ## The port in one paragraph
@@ -105,8 +120,11 @@ To go back to the standard path, remove the override and restart: about 5 minute
   - the offline checks above;
   - NVIDIA's KL test of the covered steps on the real model;
   - GSM8K and our functional checks, all on the production server before opening.
-- **Kernel tests not yet run on our GPUs.** The plugin's `test/kernels` suite (bitwise checks against SGLang, fail-stop) needs the GPUs free, so it has **not** run on our machine yet. It is the first thing we run in the next maintenance window.
-- **GEMM tactics not tuned for the B200.** The plugin pins tactics for SM103 only; on SM100 FlashInfer's default tactic is used. More speed is likely available.
+- **Kernel tests on our GPUs: done.** The plugin's suite ran on 2026-10-20, with 2 explained failures out of 594 single-GPU tests; all 4-GPU tests passed. See [`docs/porting-to-b200.md`](docs/porting-to-b200.md) §6.
+- **GEMM tactics not tuned for the B200.** The plugin pins tactics for SM103 only. On SM100, FlashInfer's autotuner tunes the calls that go through it at boot, while the plugin's direct launches (`wqkv_a`, `wq_b`, the indexer projection) use FlashInfer's first tactic.
+  - Our first tuning attempt timed a Python launch loop: ~45 µs per call for every shape, i.e. host overhead. We discarded it before it served a request.
+  - A valid attempt must time launches inside a CUDA graph. We expect a small gain (a few %), if any.
+- **KV capacity.** TP4 MoE costs ~25 GB per GPU of weights. Even at 0.84 the main KV pool (6.39 M tokens) is a third of the base recipe's (20 M), so prefix-cache churn may rise under heavy load. The 24-hour measurement reports the cache hit rate.
 - **MoE in TP4.** The plugin requires it (`--ep-size 1`), while the base recipe runs EP4. Bands with many concurrent requests may behave differently. The 24-hour measurement covers whatever bands the traffic reaches.
 - **Experimental.** The framework PR is still open, and NVIDIA marks the plugin experimental. Pin the commits listed above.
 
