@@ -1,0 +1,25 @@
+From e414c59226e8c9a1e84d6df15c3d632fbd3cc7c0 Mon Sep 17 00:00:00 2001
+From: cb <cb@local>
+Date: Mon, 19 Oct 2026 13:54:54 +0000
+Subject: [PATCH 2/2] test: refusal case uses sm_90 now that sm_100 is accepted
+
+---
+ test/unit/test_deepseek_v41_spec.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/unit/test_deepseek_v41_spec.py b/test/unit/test_deepseek_v41_spec.py
+index 05c71fb..04d619b 100644
+--- a/test/unit/test_deepseek_v41_spec.py
++++ b/test/unit/test_deepseek_v41_spec.py
+@@ -102,7 +102,7 @@ BREAKABLE = with_phase(
+         (dict(hf=dict(hidden_size=7168)), "config.hidden_size 7168"),
+         (dict(hf=dict(model_type="deepseek_v4")), "config.model_type"),
+         (dict(dtype="float16"), "dtype 'float16'"),
+-        (dict(isa="sm_100"), "not sm_100"),
++        (dict(isa="sm_90"), "not sm_90"),  # sm_100 (B200) is accepted since the port
+     ],
+ )
+ def test_each_refusal_names_its_reason(kw, want):
+-- 
+2.43.0
+

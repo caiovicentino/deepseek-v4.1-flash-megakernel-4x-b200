@@ -1,0 +1,35 @@
+From 600dd6e15a961f93cd41f4f9eaa47356f3b84026 Mon Sep 17 00:00:00 2001
+From: cb <cb@local>
+Date: Mon, 19 Oct 2026 13:54:27 +0000
+Subject: [PATCH 1/2] deepseek_v41: accept B200 (sm_100, 148 SMs),
+ CulturaBuilder port, experimental
+
+---
+ sgl_nvidia_mega/deepseek_v41/spec.py | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/sgl_nvidia_mega/deepseek_v41/spec.py b/sgl_nvidia_mega/deepseek_v41/spec.py
+index 3f24274..3c818eb 100644
+--- a/sgl_nvidia_mega/deepseek_v41/spec.py
++++ b/sgl_nvidia_mega/deepseek_v41/spec.py
+@@ -92,11 +92,15 @@ def decode_graph_backends() -> frozenset:
+ 
+ 
+ REQUIREMENTS = Requirements(
+-    isas=frozenset({"sm_103"}),
++    # B200 (sm_100) added in the CulturaBuilder port (19/10/2026): every NVRTC kernel
++    # compiles for sm_100a, FlashInfer's low-latency block-scaled GEMM supports SM100, and
++    # no grid needs more than 148 co-resident blocks (two-shot: 7 blocks/SM at 72 regs;
++    # the GEMM pair schedules with CLC).
++    isas=frozenset({"sm_103", "sm_100"}),
+     tp_sizes=frozenset({4}),
+     # the GEMM pair's persistent schedule and the Lamport consumer stay within
+     # GB300's 152 SMs
+-    resident_blocks=152,
++    resident_blocks=148,  # B200: 148 SMs (GB300: 152)
+     dtypes=frozenset({"bfloat16"}),
+     decode_graph_backends=decode_graph_backends(),
+     server_args={
+-- 
+2.43.0
+

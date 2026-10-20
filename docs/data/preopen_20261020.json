@@ -1,0 +1,179 @@
+{
+ "note": "Measured on the production server (port 8000, megakernel on) right after boot, BEFORE opening traffic, 2026-10-20 01:39-01:40 UTC. Per-request rows; prompts are token-id lists from tools/make_prompts.py.",
+ "bench_8k": [
+  {
+   "ctx": "8k",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.15499329566955566,
+   "decode_tps": 829.1276678753518,
+   "tokens": 1024,
+   "prompt_tokens": 7634
+  },
+  {
+   "ctx": "8k",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.15399837493896484,
+   "decode_tps": 777.8955374788361,
+   "tokens": 1024,
+   "prompt_tokens": 7639
+  },
+  {
+   "ctx": "8k",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.15387320518493652,
+   "decode_tps": 832.2947026129928,
+   "tokens": 1024,
+   "prompt_tokens": 7637
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.21053385734558105,
+   "decode_tps": 568.3617297867239,
+   "tokens": 1024,
+   "prompt_tokens": 7638
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.21125459671020508,
+   "decode_tps": 514.348886527386,
+   "tokens": 1024,
+   "prompt_tokens": 7638
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.21237754821777344,
+   "decode_tps": 452.80739523935057,
+   "tokens": 1024,
+   "prompt_tokens": 7634
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.43955063819885254,
+   "decode_tps": 444.36883052216257,
+   "tokens": 1024,
+   "prompt_tokens": 7639
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.14958739280700684,
+   "decode_tps": 417.0008300611792,
+   "tokens": 1024,
+   "prompt_tokens": 7637
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.15915250778198242,
+   "decode_tps": 470.11051983541864,
+   "tokens": 1024,
+   "prompt_tokens": 7639
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.19605493545532227,
+   "decode_tps": 415.58298714113755,
+   "tokens": 1024,
+   "prompt_tokens": 7635
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.14989233016967773,
+   "decode_tps": 405.82679236014053,
+   "tokens": 1024,
+   "prompt_tokens": 7637
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.36974573135375977,
+   "decode_tps": 655.8590667568706,
+   "tokens": 1024,
+   "prompt_tokens": 7634
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.15473604202270508,
+   "decode_tps": 459.2384748965428,
+   "tokens": 1024,
+   "prompt_tokens": 7634
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.19627785682678223,
+   "decode_tps": 482.6126519815385,
+   "tokens": 1024,
+   "prompt_tokens": 7637
+  },
+  {
+   "ctx": "8k",
+   "c": 4,
+   "passe": 1,
+   "ttft_s": 0.15106964111328125,
+   "decode_tps": 633.8493757708413,
+   "tokens": 1024,
+   "prompt_tokens": 7638
+  }
+ ],
+ "bench_localmaxxing_style": [
+  {
+   "ctx": "lm",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.14243245124816895,
+   "decode_tps": 1173.1220786176798,
+   "tokens": 2048,
+   "prompt_tokens": 2858
+  },
+  {
+   "ctx": "lm",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.140427827835083,
+   "decode_tps": 1090.003176161699,
+   "tokens": 2048,
+   "prompt_tokens": 2856
+  },
+  {
+   "ctx": "lm",
+   "c": 1,
+   "passe": 1,
+   "ttft_s": 0.14363646507263184,
+   "decode_tps": 1135.9485931328732,
+   "tokens": 2048,
+   "prompt_tokens": 2854
+  }
+ ],
+ "gsm8k_first_500": {
+  "correct": 491,
+  "n": 500
+ },
+ "kl_gate": {
+  "mean_kl": 0.004353159254205001,
+  "bound": 0.03,
+  "prompts": 8,
+  "max_new_tokens": 256
+ }
+}
