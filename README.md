@@ -17,10 +17,15 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 > - **Speed measured right after boot, before opening traffic** (per-user decode, median):
 >   - **829 tok/s** with 1 user at 8k context, and **465 tok/s** per user with 4 users;
 >   - **1,136 tok/s** on a LocalMaxxing-style single stream (coding prompt, ~2.85k tokens in, 2,048 out, batch 1).
-> - **The first minutes of real traffic** were measured with the same tool as the 24-hour measurement below, against the previous 24 h on the standard path. These numbers are preliminary.
->   - With 1 request running: **731 vs 538 tok/s** per user (+36%); 1,018 vs 633 (+61%) in decode stretches with no prefill mixed in.
->   - With 2–8 running: 398 vs 321 (+24%), and 657 vs 456 (+44%) in clean stretches.
->   - With 9–16 running: only 36 samples so far, so nothing to read yet.
+> - **Partial result, 8.0 h into the 24-hour window** (2026-10-20 10:13 UTC). So far this covers only night and early
+>   morning in Brazil. Same tool and definitions as the 24-hour measurement, against the same clock hours one day earlier
+>   on the standard path. Per-user decode:
+>   - 1 request running: **780 vs 535 tok/s (+46%)**; 919 vs 620 (+48%) in stretches with no prefill mixed in.
+>   - 2–8 running: **477 vs 339 (+41%)**; 684 vs 466 (+47%) clean. The gain is largest at 2–4 (+46%) and smaller at 5–8
+>     (+11% all lines, +29% clean).
+>   - 9–16 running: inconclusive so far (−4% all lines, +17% clean, few samples). 17+ not reached yet.
+>   - DSpark acceptance unchanged. 0 OOM, 0 tracebacks, 0 failed health checks.
+>   - Tables, the comparison against the whole previous day, TTFT and memory: [`docs/results.md`](docs/results.md) §2.
 > - **Update 2026-10-20 03:03 UTC: memory, kernel tests and boot time.**
 >   - **Memory:** the megakernel needs MoE in TP4 (`--ep-size 1`), and that costs ~25 GB more weights per GPU. With
 >     the SWA window fixed at ~37 GB, the main KV pool fell from 20 M to **1.85 M tokens** at `--mem-fraction-static
