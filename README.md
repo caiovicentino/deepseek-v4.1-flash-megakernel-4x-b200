@@ -5,8 +5,13 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 ["SGLang low-latency mode"](https://www.lmsys.org/blog/2026-10-18-sglang-low-latency-mode). NVIDIA ships it only for GB300
 (SM103). We ported it to the B200 (SM100) and put it in production on the machine that serves our community.
 
-> **Status: 2026-10-20 (live, updated as the measurement runs)**
-> - **In production since 2026-10-20 01:40 UTC** on our 4× B200. It replaced the standard SGLang path of the
+> **Status: 2026-10-20 18:30 UTC — not production-ready yet**
+> - ⚠️ **The megakernel hung our production twice** (2026-10-20 14:06 and 14:52 UTC), after 12.5 h of service. At both
+>   hangs the TP ranks' scheduler state had diverged. **Our production is back on the standard path of the
+>   [base recipe](https://github.com/caiovicentino/deepseek-v4.1-flash-sglang-4x-b200) since 15:04 UTC**, and a fix is
+>   being tested. **Until we publish a confirmed fix, do not run this recipe in production.** What we saw:
+>   [`docs/results.md`](docs/results.md) §5.
+> - **Ran in production 2026-10-20 01:40 → 14:52 UTC** on our 4× B200. It replaced the standard SGLang path of the
 >   [base recipe](https://github.com/caiovicentino/deepseek-v4.1-flash-sglang-4x-b200). Same model, same image, same
 >   patches; only the flags the plugin needs and the plugin itself changed.
 > - **Gates passed before any user reached it.** All four ran against the production port, with traffic closed:
@@ -17,15 +22,16 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 > - **Speed measured right after boot, before opening traffic** (per-user decode, median):
 >   - **829 tok/s** with 1 user at 8k context, and **465 tok/s** per user with 4 users;
 >   - **1,136 tok/s** on a LocalMaxxing-style single stream (coding prompt, ~2.85k tokens in, 2,048 out, batch 1).
-> - **Partial result, 8.0 h into the 24-hour window** (2026-10-20 10:13 UTC). So far this covers only night and early
->   morning in Brazil. Same tool and definitions as the 24-hour measurement, against the same clock hours one day earlier
->   on the standard path. Per-user decode:
->   - 1 request running: **780 vs 535 tok/s (+46%)**; 919 vs 620 (+48%) in stretches with no prefill mixed in.
->   - 2–8 running: **477 vs 339 (+41%)**; 684 vs 466 (+47%) clean. The gain is largest at 2–4 (+46%) and smaller at 5–8
->     (+11% all lines, +29% clean).
->   - 9–16 running: inconclusive so far (−4% all lines, +17% clean, few samples). 17+ not reached yet.
->   - DSpark acceptance unchanged. 0 OOM, 0 tracebacks, 0 failed health checks.
->   - Tables, the comparison against the whole previous day, TTFT and memory: [`docs/results.md`](docs/results.md) §2.
+> - **Result of the megakernel window** (01:41 → 14:52 UTC: 12.5 h of service, from night through the Brazilian
+>   business morning). Same tool and definitions as the base repo, against the same clock hours one day earlier on the
+>   standard path. Per-user decode:
+>   - 1 request running: **783 vs 536 tok/s (+46%)**; 924 vs 624 (+48%) in stretches with no prefill mixed in.
+>   - 2–8 running: **462 vs 328 (+41%)**; 676 vs 460 (+47%) clean. Largest at 2–4 (+46%), smaller at 5–8 (+13% all
+>     lines, +27% clean).
+>   - 9–16 running: **no gain** (195 vs 194, +1%, ~6k lines on each side). 17–32: no gain either, on few samples.
+>   - So the megakernel pays off at 1–8 concurrent requests, the range its fused path covers (48 rows, i.e. 8 requests
+>     at DSpark's 6 rows each). Above that it ties with the standard path. DSpark acceptance is unchanged.
+>   - Tables, TTFT and memory: [`docs/results.md`](docs/results.md) §2.
 > - **Update 2026-10-20 03:03 UTC: memory, kernel tests and boot time.**
 >   - **Memory:** the megakernel needs MoE in TP4 (`--ep-size 1`), and that costs ~25 GB more weights per GPU. With
 >     the SWA window fixed at ~37 GB, the main KV pool fell from 20 M to **1.85 M tokens** at `--mem-fraction-static
@@ -36,7 +42,7 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 >   - **Gates again:** KL 0.0045, GSM8K 0.974, 16/16, leak PASS. Speed unchanged (803 / 480 / 1,141 tok/s).
 >   - **Boot time:** a warm boot takes **6 min 16 s**. The first boot took 18 min because the plugin's cache directory
 >     started empty.
-> - **24-hour measurement running** (2026-10-20 01:41 → 2026-10-21 01:41 UTC). It uses the same tool and definitions as the base repo and compares against the 24 h before the swap. Results land in [`docs/results.md`](docs/results.md) around 2026-10-21 02:00 UTC.
+> - **The 24-hour comparison ended early.** The megakernel window closes at 14:52:14 UTC, when production moved to the standard path. Both outages count as failures of the megakernel run. Protocol note: [`docs/results.md`](docs/results.md) §3.
 
 Series:
 - [GLM-5.3-Flash 4× RTX PRO 6000](https://github.com/caiovicentino/glm-5.3-flash-sglang-4x-rtx-pro-6000)
