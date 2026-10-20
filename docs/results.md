@@ -46,6 +46,11 @@ Sixteen minutes is not a measurement. The 24-hour result replaces this table.
 | **Secondary** | TTFT p50/p90/p99 from the histogram deltas; prefix-cache hit; DSpark acceptance; prefill throughput; 5xx; GPU memory over time |
 | **Caveats declared now** | The two days carry different traffic. The megakernel window starts with a cold prefix cache (restart at 01:20). Bands that traffic does not reach stay "not measured". The megakernel run uses MoE in TP4 (plugin requirement) while the standard path used EP4 |
 
+**Deviation, recorded 2026-10-20 03:10 UTC, before any 24-hour result:**
+- The megakernel window has a gap from 02:40:49 to 03:03:38 UTC: a maintenance that ran the plugin's kernel tests and raised `--mem-fraction-static` from 0.80 to 0.84.
+- The memory change grows the KV pool from 1.85 M to 6.39 M tokens. It does not change the decode kernels.
+- Decode per user is compared over the whole window. Cache hit rate and TTFT are also reported for the part after 03:03:38 alone.
+
 ## 4. 24-hour results
 
 *Pending: computed automatically at 2026-10-21 01:50 UTC and added here.*
