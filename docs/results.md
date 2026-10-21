@@ -96,9 +96,46 @@ The first 16 minutes and the 8-hour partial, reported here earlier, are kept in 
 - The two outages (14:06–14:21 and 14:52–15:04 UTC) stay inside the window and count as failures of the megakernel run. Decode and latency statistics come only from the time the server was serving.
 - We added a same-clock-hours comparison (§2 A) to the protocol's whole-day comparison (§2 B), because the shortened window covers only part of the day.
 
-## 4. 24-hour results
+## 4. Final results (scheduled run, 2026-10-21 01:50 UTC)
 
-*The window was shortened (§3); its complete numbers are in §2. The run scheduled for 2026-10-21 01:50 UTC recomputes them with the same tool; any change will be noted here.*
+The scheduled run recomputed the shortened window (§3) with the same tool, and it reproduces §2 exactly. Its summary step expected three windows (a leftover from the base repo's script) and stopped; the tables below come from the run's raw output, aggregated without client identifiers: [`data/results_24h_mega.json`](data/results_24h_mega.json).
+
+**Per-user decode, tok/s**, the protocol's comparison: the megakernel's 01:41 → 14:52 UTC (12.5 h of service) against the standard path's 24 h before the swap. Before → after (change). The hour-matched comparison is §2 A.
+
+| Running | Lines, before / after | All, mean | All, p50 | All, p90 | Clean, mean | Clean, p50 | Clean, p90 |
+|---|---|---|---|---|---|---|---|
+| 1 | 29,651 / 36,311 (clean 20,714 / 27,443) | 538 → 783 (+46%) | 492 → 767 (+56%) | 889 → 1,269 (+43%) | 633 → 924 (+46%) | 552 → 838 (+52%) | 965 → 1,326 (+37%) |
+| 2–8 | 113,990 / 66,462 (clean 43,869 / 29,538) | 321 → 462 (+44%) | 294 → 411 (+40%) | 515 → 791 (+53%) | 456 → 676 (+48%) | 433 → 656 (+52%) | 606 → 900 (+49%) |
+| 9–16 | 13,464 / 5,971 (clean 1,681 / 397) | 188 → 195 (+4%) | 177 → 185 (+4%) | 274 → 266 (−3%) | 294 → 323 (+10%) | 291 → 322 (+11%) | 340 → 371 (+9%) |
+| 17–32 | 559 / 417 (clean 6 / 4) | 144 → 154 (+7%) | 141 → 153 (+8%) | 187 → 188 (+1%) | not measured (6 / 4 clean lines) | | |
+| 33–64 | 5 / 0 | not measured | | | | | |
+
+**Secondary**, whole windows:
+
+| | Standard path (24 h) | Megakernel (12.5 h) |
+|---|---|---|
+| TTFT p50 / p90 / p99 | 0.51 / 1.81 / 9.42 s | 0.44 / 1.71 / 10.98 s |
+| Queue time p50 / p90 / p99 | 0.06 / 0.72 / 8.82 s | 0.04 / 0.82 / 9.52 s |
+| End-to-end latency p50 / p90 / p99 | 1.76 / 7.92 / 34.1 s | 1.46 / 6.64 / 29.7 s |
+| Prefix-cache hit | 97.1% | 96.5% |
+| DSpark mean accept length at 1 / 2–8 / 9–16 running | 3.86 / 3.70 / 3.63 | 3.78 / 3.68 / 3.69 |
+| Prefill, full 4,096-token chunks, mean tok/s: all / with decode running / idle | 13,401 / 12,650 / 20,450 | 16,164 / 15,207 / 21,336 |
+| HTTP 5xx | 4 | 7 |
+| Aborted requests per hour | 15.2 | 11.6 |
+| GPU memory free per GPU, p50 / minimum | 2.2 / 2.2 GiB | 7.6 / 4.4 GiB |
+| Server hangs | 0 | **2** (§5) |
+
+Caveats, as declared in §3 before the data:
+- The two days carried different traffic. §2 A controls for the time of day; this table does not.
+- The megakernel window starts with a cold prefix cache (restart at 01:20 UTC) and includes its first hour at memory 0.80.
+- The megakernel runs MoE in TP4 (a plugin requirement); the standard path ran EP4. Differences at 9+ running and in prefill mix the megakernel with that layout change.
+- The window is 12.5 h, not 24 h, and both outages count as failures of the megakernel run (§3 deviation).
+
+Verdict:
+- **1–8 requests running: +40% to +56% per user** (mean and p50, with and without prefill mixed in). These bands hold 94% of the megakernel window's decode lines.
+- **9–16: a tie** (+4% here, +1% hour-matched; +10% in clean stretches). **17–32: no clear change**, on few lines. 33–64: not measured.
+- **Worse:** two hangs in 12.5 h, which moved production back to the standard path; TTFT p99 10.98 vs 9.42 s and queue time p90/p99 slightly higher, on different traffic hours; 7 vs 4 HTTP 5xx.
+- **Not production-ready** until the cause of the hangs is fixed and confirmed (§5).
 
 ## 5. Two hangs on 2026-10-20
 

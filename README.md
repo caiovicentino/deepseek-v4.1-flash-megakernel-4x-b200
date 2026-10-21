@@ -5,7 +5,7 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 ["SGLang low-latency mode"](https://www.lmsys.org/blog/2026-10-18-sglang-low-latency-mode). NVIDIA ships it only for GB300
 (SM103). We ported it to the B200 (SM100) and put it in production on the machine that serves our community.
 
-> **Status: 2026-10-20 18:30 UTC — not production-ready yet**
+> **Status: 2026-10-21 02:00 UTC — final result in; not production-ready yet**
 > - ⚠️ **The megakernel hung our production twice** (2026-10-20 14:06 and 14:52 UTC), after 12.5 h of service. At both
 >   hangs the TP ranks' scheduler state had diverged. **Our production is back on the standard path of the
 >   [base recipe](https://github.com/caiovicentino/deepseek-v4.1-flash-sglang-4x-b200) since 15:04 UTC**, and a fix is
@@ -42,6 +42,10 @@ This recipe runs NVIDIA's decode megakernel for **[DeepSeek-V4.1-Flash-1017](htt
 >   - **Gates again:** KL 0.0045, GSM8K 0.974, 16/16, leak PASS. Speed unchanged (803 / 480 / 1,141 tok/s).
 >   - **Boot time:** a warm boot takes **6 min 16 s**. The first boot took 18 min because the plugin's cache directory
 >     started empty.
+> - **Final verdict** (scheduled run, 2026-10-21 01:50 UTC; same numbers as the window result above). Per-user decode
+>   gains **+40% to +56% at 1–8 concurrent requests** (94% of the decode lines) and **ties at 9–16 and 17–32**. What got
+>   worse: **two hangs in 12.5 h** (production is back on the standard path), TTFT p99 10.98 vs 9.42 s and 7 vs 4 HTTP
+>   5xx, on different traffic. Full table: [`docs/results.md`](docs/results.md) §4.
 > - **The 24-hour comparison ended early.** The megakernel window closes at 14:52:14 UTC, when production moved to the standard path. Both outages count as failures of the megakernel run. Protocol note: [`docs/results.md`](docs/results.md) §3.
 
 Series:
